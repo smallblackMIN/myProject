@@ -57,6 +57,9 @@ class Game():
                     print("超出猜数范围了哦")
                     ws.cell(row,2).value = "回答错误，超出范围了"
                     x.add_row([row, num, "回答错误，超出范围"])
+                if row > 15:
+                    print("你太笨了，猜题机会已经全部用完了")
+                    break
                 row = row + 1
             except ValueError as e:
                 print("输入的不是整数")
@@ -67,8 +70,6 @@ class Game():
         wb.save("猜题结果.xls")
         x.set_style(PLAIN_COLUMNS)  #控制台打印的输出列表不显示边框
         print(x)
-
-
 
 
 if __name__ == '__main__':
