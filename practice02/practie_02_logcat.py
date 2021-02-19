@@ -11,23 +11,26 @@ step4、每个线程的结果都写入文件夹
 写入文件并存入文件夹：
 1、判断是否存在当天的文件夹，如果不存在就先新建一个，然后存入文件夹
 2、文件名需要命名组合，时间加日期
+========================================================
+(3)要求在保存日志时，控制台可以实时输出日志信息，并保存；不能有乱码的问题
+(4)统计日志中出现error信息的次数
+(5)捕获日志中的crash、anr等信息，分别保存到不同文件中（1、如anr建个anr的文件夹，统发生anr的行数，写到一个文件中；2、crash发生时，统计crash发生的日志所在的第一行，在crash的文件夹下保存一个crash的文件），建议文件名用开始记录的时间戳
+思路：
 
 '''
 #cd /Users/minzeng/PycharmProjects/myProject/practice02
 #可以转成exe运行     pyinstaller --onefile --nowindowed --icon="/Users/minzeng/PycharmProjects/myProject/practice02" practie_02_logcat.py
-
+import logging
 import time
 import datetime
 import os
 import re
-import sys
-import signal
 import subprocess
+
 class Get_logcat():
     def __init__(self):
         pass
-#作为文件名
-# name = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')
+
     def get_devices(self):
         """
         获取设备列表
@@ -40,7 +43,7 @@ class Get_logcat():
             # print(devices_info[i])
             str_init += devices_info[i]
             # print('第一次',str_init)
-        devices_name=re.findall('\n(.+?)\t',str_init,re.S)
+        devices_name=re.findall('\n(.+?)\t',str_init,re.S) #re.S表示"."表示可以在跨行匹配，将整个字符串作为整体
         # devices = re.findall(r'(.*?)\tdevice\b', devices_info)
         devices = {}
         j = 1
@@ -48,7 +51,6 @@ class Get_logcat():
             devices[j] = i
             print("{xuhao}、 {device}".format(xuhao=j,device=i))
             j = j + 1
-
         return devices
 
 
@@ -79,6 +81,7 @@ class Get_logcat():
 
 
     def get_logcat(self):
+        self.mk_file()#创建文件夹
         daytime = datetime.datetime.now().strftime('%Y%m%d')
         name = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')
         while True:
@@ -86,12 +89,20 @@ class Get_logcat():
             if device_num is not False:
                 action1 = "adb -s {num} logcat -v time > ./logcat/{day}/{file}.txt".format(num=device_num,day=daytime,file=name)
                 action2 = "adb -s {num} logcat *:E > ./logcat/{day}/Error/{file}.txt".format(num=device_num,day=daytime,file=name)
-                pro1 = subprocess.Popen(action1,shell=True)
-                pro2 = subprocess.Popen(action2,shell=True)
-                time.sleep(2)
+                # pro1 = subprocess.Popen(action1,shell=True) #创建子线程
+                # pro1 = subprocess.Popen(args=action1, stdout=subprocess.PIPE,stderr=subprocess.PIPE)  # 创建子线程
+                # pro2 = subprocess.Popen(action2,shell=True)
+                #在控制台输出日志
+                pro3 = subprocess.Popen("adb -s {num} logcat".format(num=device_num),stdout=subprocess.PIPE,shell=True)
+                for line in pro3.stdout:
+                    logging.info(line.decode('utf-8'))
+                print('----------------重新开始-----------------/n')
+
+
+                pro3.kill()
                 print("日志抓结束了")
-                pro1.kill()
-                pro2.kill()
+                # pro1.kill()
+                # pro2.kill()
                 break
             else:
                 return False
@@ -100,3 +111,5 @@ class Get_logcat():
 
 if __name__ == '__main__':
     Get_logcat().get_logcat()
+
+    # logging.info("this is test")
