@@ -16,7 +16,8 @@ step4、每个线程的结果都写入文件夹
 (4)统计日志中出现error信息的次数
 (5)捕获日志中的crash、anr等信息，分别保存到不同文件中（1、如anr建个anr的文件夹，统发生anr的行数，写到一个文件中；2、crash发生时，统计crash发生的日志所在的第一行，在crash的文件夹下保存一个crash的文件），建议文件名用开始记录的时间戳
 思路：
-
+1、使用subprocess中的stdout来指向输出，并通过转码来存储输出，乱码的问题用utf-8格式统一一下
+2、
 '''
 #cd /Users/minzeng/PycharmProjects/myProject/practice02
 #可以转成exe运行     pyinstaller --onefile --nowindowed --icon="/Users/minzeng/PycharmProjects/myProject/practice02" practie_02_logcat.py
@@ -88,24 +89,35 @@ class Get_logcat():
             device_num = self.choose_device()
             if device_num is not False:
                 action1 = "adb -s {num} logcat -v time > ./logcat/{day}/{file}.txt".format(num=device_num,day=daytime,file=name)
-                action2 = "adb -s {num} logcat *:E > ./logcat/{day}/Error/{file}.txt".format(num=device_num,day=daytime,file=name)
-                # pro1 = subprocess.Popen(action1,shell=True) #创建子线程
-                # pro1 = subprocess.Popen(args=action1, stdout=subprocess.PIPE,stderr=subprocess.PIPE)  # 创建子线程
-                # pro2 = subprocess.Popen(action2,shell=True)
+                # action2 = "adb -s {num} logcat *:E > ./logcat/{day}/Error/{file}.txt".format(num=device_num,day=daytime,file=name)
+                log_error = subprocess.Popen("adb -s {num} logcat *:E".format(num=device_num),stdout=subprocess.PIPE,shell=True)
                 #在控制台输出日志
-                pro3 = subprocess.Popen("adb -s {num} logcat".format(num=device_num),stdout=subprocess.PIPE,shell=True)
-                for line in pro3.stdout:
-                    logging.info(line.decode('utf-8'))
-                print('----------------重新开始-----------------/n')
-
-
-                pro3.kill()
-                print("日志抓结束了")
-                # pro1.kill()
-                # pro2.kill()
+                log = subprocess.Popen("adb -s {num} logcat".format(num=device_num),stdout=subprocess.PIPE,shell=True)
+                s = log.stdout
+                time.sleep(3)
+                log.kill()
+                log_error.kill()
+                log_path = r'./logcat/{day}/{file}.txt'.format(day=daytime,file=name)
+                log_error_path = r'./logcat/{day}/Error/{file}.txt'.format(day=daytime,file=name)
+                #设备日志打印到控制台，并逐行读取保存
+                with open(log_path,'w',encoding='utf-8') as f1:
+                    for line in log.stdout:
+                        print(line.decode('utf-8'))
+                        f1.write(line.decode('utf-8'))
+                #错误日志写入文件并计数
+                with open(log_error_path,'w',encoding='utf-8') as f2:
+                    count = 0
+                    for line in log_error.stdout:
+                        f2.write(line.decode('utf-8'))
+                        count = count + 1
+                    print("当前error发生%s次" % (count-1))
                 break
             else:
                 return False
+
+
+
+
 
 
 
